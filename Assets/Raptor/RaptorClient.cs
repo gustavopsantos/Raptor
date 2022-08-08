@@ -144,6 +144,12 @@ namespace Raptor
         
         private async void HandleConnectionRequestAsync(Sequence<ConnectionRequest> connectionRequest)
         {
+            if (_connections.TryGetValue(connectionRequest.Source, out _))
+            {
+                Debug.LogWarning("Skipping Connection request");
+                return;
+            }
+            
             _sequenceHistory.Initialize(connectionRequest.Source);
             _connections.TryAdd(connectionRequest.Source, ConnectionState.Connecting);
             
