@@ -1,0 +1,17 @@
+{
+    "name": "Raptor.Sample",
+    "rootNamespace": "",
+    "references": [
+        "GUID:fbe2a297bd36b71418e9529e07c710e8",
+        "GUID:f24cf67903b27ae498b3069ecc30cc11"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
