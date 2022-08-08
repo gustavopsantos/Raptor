@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Net;
 using Raptor.Enums;
 using Raptor.Packets;
@@ -172,6 +173,14 @@ namespace Raptor
         {
             var netMessage = new NetMessage<T>(payload);
             return SendPacketReliable(netMessage, recipient, Acquisition.Sequenced, cancellationToken);
+        }
+
+        public Task BroadcastMessageReliable<T>(T payload, CancellationToken cancellationToken)
+        {
+            var netMessage = new NetMessage<T>(payload);
+            var connections = _connections.Where(c => c.Value == ConnectionState.Connected).Select(kvp => kvp.Key);
+            var tasks = connections.Select(c => SendPacketReliable(netMessage, c, Acquisition.Sequenced, cancellationToken));
+            return Task.WhenAll(tasks);
         }
 
         private async Task<Sequence<TResponse>> SendSequence<TRequest, TResponse>(Guid replies, TRequest payload, IPEndPoint recipient, Acquisition acquisition, CancellationToken cancellationToken)
