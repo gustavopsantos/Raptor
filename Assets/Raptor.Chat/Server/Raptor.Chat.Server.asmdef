@@ -1,0 +1,17 @@
+{
+    "name": "Raptor.Chat.Server",
+    "rootNamespace": "",
+    "references": [
+        "GUID:fbe2a297bd36b71418e9529e07c710e8",
+        "GUID:046ba962b106ce74ab0d114a0067f1b5"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
