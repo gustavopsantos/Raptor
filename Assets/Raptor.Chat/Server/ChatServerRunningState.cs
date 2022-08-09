@@ -1,3 +1,4 @@
+using System.Threading;
 using Raptor.Chat.Shared;
 using Raptor.Interface;
 using UnityEngine;
@@ -13,7 +14,7 @@ namespace Raptor.Chat.Server
         {
             Debug.Log("OnStateEnter - ChatServerRunningState");
             chatServer.Client = new RaptorClient(Configuration.ServerPort);
-            chatServer.Client.RegisterMessageHandler<ChatMessage>(EnlistChatMessage);
+            chatServer.Client.RegisterMessageHandler<ChatMessage>(packet => BroadcastChatMessage(packet, chatServer));
         }
 
         public void Present(ChatServer chatServer)
@@ -29,8 +30,10 @@ namespace Raptor.Chat.Server
         }
 
         // TODO Create a interface for message handler and instantiate handler
-        private void EnlistChatMessage(Message<ChatMessage> packet)
+        private void BroadcastChatMessage(Message<ChatMessage> packet, ChatServer chatServer)
         {
+            // TODO Add mono OnDestroy cancellation token
+            chatServer.Client.BroadcastMessageReliable(packet.Payload, CancellationToken.None);
         }
     }
 }

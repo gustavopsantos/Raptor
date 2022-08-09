@@ -1,14 +1,22 @@
+using System;
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace Raptor.Chat.Client
 {
     public class ChatClient : MonoBehaviour
     {
-        private ChatClientState _current;
+        private IChatClientState _current;
+        public RaptorClient Client { get; set; }
 
         private void Start()
         {
-            _current = new ChatClientDisconnectedState();
+            SwitchState(new ChatClientDisconnectedState());
+        }
+
+        private void OnDestroy()
+        {
+            SwitchState(null);
         }
 
         private void OnGUI()
@@ -23,9 +31,11 @@ namespace Raptor.Chat.Client
             }
         }
 
-        public void SwitchState(ChatClientState state)
+        public void SwitchState([CanBeNull] IChatClientState state)
         {
+            _current?.OnExit(this);
             _current = state;
+            _current?.OnEnter(this);
         }
     }
 }

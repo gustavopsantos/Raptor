@@ -3,7 +3,7 @@ using System;
 namespace Raptor.Chat.Shared
 {
     [Serializable]
-    public readonly struct ChatMessage
+    public class ChatMessage
     {
         public string Content { get; }
 

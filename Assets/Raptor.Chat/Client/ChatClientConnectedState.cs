@@ -1,16 +1,31 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Threading;
+using Raptor.Chat.Shared;
+using Raptor.Interface;
 using UnityEngine;
 
 namespace Raptor.Chat.Client
 {
-    public class ChatClientConnectedState : ChatClientState
+    public class ChatClientConnectedState : IChatClientState
     {
         private string _composing;
         private Vector2 _scrollPosition;
         private readonly List<string> _messages = new();
 
-        public override void Present(ChatClient chatClient)
+        public void OnEnter(ChatClient chatClient)
+        {
+            chatClient.Client.RegisterMessageHandler<ChatMessage>(EnlistChatMessage);
+        }
+
+        private void EnlistChatMessage(Message<ChatMessage> packet)
+        {
+            _scrollPosition.y = float.MaxValue; // scroll to bottom
+            _messages.Add(packet.Payload.Content);
+        }
+
+        public void Present(ChatClient chatClient)
         {
             using (new GUILayout.VerticalScope("box"))
             {
@@ -30,17 +45,17 @@ namespace Raptor.Chat.Client
 
                 if (GUILayout.Button("Send", GUILayout.Width(42)))
                 {
-                    Send();
+                    Send(chatClient);
                 }
             }
         }
 
-        private void Send()
+        public void OnExit(ChatClient chatClient)
         {
-            AddMessage();
+            chatClient.Client.Dispose();
         }
 
-        private void AddMessage()
+        private void Send(ChatClient chatClient)
         {
             var composed = _composing.Trim();
 
@@ -49,9 +64,11 @@ namespace Raptor.Chat.Client
                 return;
             }
 
-            _scrollPosition.y = float.MaxValue; // scroll to bottom
-            _messages.Add($"[{Environment.MachineName}] {composed}");
             _composing = string.Empty;
+            var chatMessage = new ChatMessage($"[{Environment.MachineName}] {composed}");
+            var serverAddress = new IPEndPoint(IPAddress.Loopback, Configuration.ServerPort);
+            // TODO Add mono OnDestroy cancellation token
+            chatClient.Client.SendMessageReliable(chatMessage, serverAddress, CancellationToken.None);
         }
     }
 }
