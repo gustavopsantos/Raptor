@@ -1,14 +1,21 @@
 using UnityEngine;
+using JetBrains.Annotations;
 
 namespace Raptor.Chat.Server
 {
     public class ChatServer : MonoBehaviour
     {
-        private ChatServerState _current;
-        
+        private IChatServerState _current;
+        public RaptorClient Client { get; set; }
+
         private void Start()
         {
-            _current = new ChatServerStoppedState();
+            SwitchState(new ChatServerStoppedState());
+        }
+
+        private void OnDestroy()
+        {
+            SwitchState(null);
         }
 
         private void OnGUI()
@@ -23,9 +30,11 @@ namespace Raptor.Chat.Server
             }
         }
 
-        public void SwitchState(ChatServerState state)
+        public void SwitchState([CanBeNull] IChatServerState state)
         {
+            _current?.OnExit(this);
             _current = state;
+            _current?.OnEnter(this);
         }
     }
 }

@@ -2,19 +2,24 @@ using UnityEngine;
 
 namespace Raptor.Chat.Server
 {
-    public class ChatServerStoppedState : ChatServerState
+    public class ChatServerStoppedState : IChatServerState
     {
-        public override void Present(ChatServer chatServer)
+        public void OnEnter(ChatServer chatServer)
+        {
+            Debug.Log("OnStateEnter - ChatServerStoppedState");
+        }
+
+        public void Present(ChatServer chatServer)
         {
             if (GUILayout.Button("Start"))
             {
-                Start();
                 chatServer.SwitchState(new ChatServerRunningState());
             }
         }
 
-        private void Start()
+        public void OnExit(ChatServer chatServer)
         {
+            Debug.Log("OnStateDisposed - ChatServerStoppedState");
         }
     }
 }
