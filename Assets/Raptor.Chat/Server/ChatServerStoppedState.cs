@@ -6,7 +6,6 @@ namespace Raptor.Chat.Server
     {
         public void OnEnter(ChatServer chatServer)
         {
-            Debug.Log("OnStateEnter - ChatServerStoppedState");
         }
 
         public void Present(ChatServer chatServer)
@@ -19,7 +18,6 @@ namespace Raptor.Chat.Server
 
         public void OnExit(ChatServer chatServer)
         {
-            Debug.Log("OnStateDisposed - ChatServerStoppedState");
         }
     }
 }
