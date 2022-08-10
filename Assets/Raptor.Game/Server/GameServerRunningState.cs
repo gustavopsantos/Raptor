@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using UnityEngine;
 using Raptor.Game.Shared;
@@ -12,6 +13,12 @@ namespace Raptor.Game.Server
         {
             gameServer.Client = new RaptorClient(Configuration.ServerPort);
             gameServer.Client.RegisterRequestHandler<Ping>(ReplyWithPong);
+            gameServer.Client.RegisterRequestHandler<GetServerTime>(ReplyWithServerTime);
+        }
+
+        private void ReplyWithServerTime(Sequence<GetServerTime> getServerTimeRequest)
+        {
+            getServerTimeRequest.Reply(DateTime.UtcNow, CancellationToken.None);
         }
 
         private void ReplyWithPong(Sequence<Ping> pingRequest)
@@ -22,6 +29,7 @@ namespace Raptor.Game.Server
         public void Present(GameServer gameServer)
         {
             GUILayout.Label("Running...");
+            GUILayout.Label($"Time: {DateTime.UtcNow.Print()}");
         }
 
         public void OnExit(GameServer gameServer)

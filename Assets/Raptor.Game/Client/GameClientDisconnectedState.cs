@@ -46,9 +46,11 @@ namespace Raptor.Game.Client
 
             try
             {
+                var timeClient = new TimeClient(address, gameClient.Client);
                 await gameClient.Client.ConnectAsync(address);
-                await MeasureMedianRoundTripTime.Measure(address, gameClient.Client);
-                gameClient.SwitchState(new GameClientConnectedState());
+                var rtt = await MeasureMedianRoundTripTime.Measure(address, gameClient.Client);
+                await timeClient.Sync(rtt);
+                gameClient.SwitchState(new GameClientConnectedState(timeClient));
             }
             catch (Exception e)
             {
