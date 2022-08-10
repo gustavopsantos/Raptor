@@ -67,7 +67,6 @@ namespace Raptor.Chat.Client
             _composing = string.Empty;
             var chatMessage = new ChatMessage($"[{Environment.MachineName}] {composed}");
             var serverAddress = new IPEndPoint(IPAddress.Loopback, Configuration.ServerPort);
-            // TODO Add mono OnDestroy cancellation token
             chatClient.Client.SendMessageReliable(chatMessage, serverAddress, CancellationToken.None);
         }
     }

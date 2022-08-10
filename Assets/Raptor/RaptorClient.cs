@@ -240,7 +240,7 @@ namespace Raptor
             _handlers.TryAdd(typeof(NetMessage<T>), (obj, sender) =>
             {
                 var netMessage = (NetMessage<T>) obj;
-                var message = new Message<T>(netMessage.Payload, sender);
+                var message = new Message<T>(netMessage.Payload, sender, this);
                 handler.Invoke(message);
             });
         }

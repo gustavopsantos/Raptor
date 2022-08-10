@@ -6,11 +6,13 @@ namespace Raptor.Interface
     {
         public T Payload { get; }
         public IPEndPoint Source { get; }
+        public RaptorClient Mean { get; }
 
-        public Message(T payload, IPEndPoint source)
+        public Message(T payload, IPEndPoint source, RaptorClient mean)
         {
             Payload = payload;
             Source = source;
+            Mean = mean;
         }
     }
 }
