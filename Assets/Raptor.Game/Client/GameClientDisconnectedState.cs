@@ -3,8 +3,10 @@ using System.Net;
 using System.Linq;
 using UnityEngine;
 using System.Net.Sockets;
+using System.Threading;
 using Raptor.Game.Client.NetworkStatistics;
 using Raptor.Game.Shared;
+using Object = System.Object;
 
 namespace Raptor.Game.Client
 {
@@ -50,7 +52,12 @@ namespace Raptor.Game.Client
                 await gameClient.Client.ConnectAsync(address);
                 var rtt = await MeasureMedianRoundTripTime.Measure(address, gameClient.Client);
                 await timeClient.Sync(rtt);
-                gameClient.SwitchState(new GameClientConnectedState(timeClient));
+                var serverTick = await gameClient.Client.Request<GetServerTick, int>(new GetServerTick(), address, CancellationToken.None);
+                var playerInfo = await gameClient.Client.Request<GetPlayerInfo, PlayerInfo>(new GetPlayerInfo(), address, CancellationToken.None);
+                var localPlayerPrefab = Resources.Load<LocalPlayer>("LocalPlayer");
+                var localPlayer = UnityEngine.Object.Instantiate(localPlayerPrefab);
+                localPlayer.Setup(playerInfo.Payload);
+                gameClient.SwitchState(new GameClientConnectedState(timeClient, serverTick.Payload, rtt));
             }
             catch (Exception e)
             {
