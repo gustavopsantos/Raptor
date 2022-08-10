@@ -117,6 +117,10 @@ namespace Raptor
             {
                 handler.Invoke(packet.Payload, source);
             }
+            else
+            {
+                throw new Exception($"There are no handler for the payload {packet.Payload.GetType().ReadableName()}");
+            }
             //Debug.Log($"Handled {packet.Payload.GetType().ReadableName()} from {source} at {TimeProfiler.Sample()} thread: {AppDomain.GetCurrentThreadId()}");
         }
 
