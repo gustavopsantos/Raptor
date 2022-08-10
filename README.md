@@ -7,6 +7,9 @@ Raptor is an extension on top of the User Datagram Protocol (<a href="https://en
 ⚠️ Since this is still a PoC I dont recomment using it in any project. ⚠️
 </div>
 
+# Simulation
+Raptor does not comes with simulation tool, since there are already good tools for that such as <a href="https://github.com/jagt/clumsy">Clumsy</a>, I see no point of adding it inside the protocol.
+
 # TODO  
 - Adds connection maintainer (Keep-Alive)  
 - Adds sample game  
