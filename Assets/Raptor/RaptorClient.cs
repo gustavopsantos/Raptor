@@ -129,8 +129,8 @@ namespace Raptor
             {
                 using var timeout = new CancellationTokenSource(Configuration.ConnectionTimeout);
                 
-                var connectionResponse = await SendSequence<ConnectionRequest, ConnectionResponse>(Guid.Empty, new ConnectionRequest(), host, Acquisition.Always, timeout.Token);
-                var handshakeResponse = await connectionResponse.ReplyAndAwait<HandshakeRequest, HandshakeResponse>(new HandshakeRequest(), timeout.Token);
+                var connectionResponse = await SendSequence<ConnectionRequest, ConnectionResponse>(Guid.Empty, new ConnectionRequest(), host, Acquisition.Always, timeout.Token).ConfigureAwait(false);
+                var handshakeResponse = await connectionResponse.ReplyAndAwait<HandshakeRequest, HandshakeResponse>(new HandshakeRequest(), timeout.Token).ConfigureAwait(false);
                 _connections.TryUpdate(host, ConnectionState.Connected, ConnectionState.Connecting);
             }
             catch (Exception e)
