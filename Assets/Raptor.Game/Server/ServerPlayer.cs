@@ -1,4 +1,5 @@
-using System;
+using System.Collections.Generic;
+using System.Net;
 using Raptor.Game.Shared;
 using UnityEngine;
 
@@ -7,10 +8,7 @@ namespace Raptor.Game.Server
     public class ServerPlayer : MonoBehaviour
     {
         public string Id;
-
-        public void Setup(PlayerInfo info)
-        {
-            Id = info.PlayerId.ToString();
-        }
+        public IPEndPoint EndPoint;
+        public List<PlayerCommand> CommandBuffer;
     }
 }

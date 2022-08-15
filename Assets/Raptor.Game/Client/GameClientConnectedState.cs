@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Threading;
 using Raptor.Game.Shared;
 using Raptor.Interface;
@@ -12,20 +13,30 @@ namespace Raptor.Game.Client
         private Thread _thread;
         private readonly TimeClient _timeClient;
 
-        public GameClientConnectedState(TimeClient timeClient, int serverTick, TimeSpan rtt)
+        public GameClientConnectedState(GameClient gameClient, TimeClient timeClient, int serverTick, TimeSpan rtt)
         {
             _tick = serverTick + (int)Math.Ceiling(Configuration.TickRate * (rtt + Configuration.CommandBuffer).TotalSeconds);
             _timeClient = timeClient;
-            _thread = new Thread(Loop);
+            _thread = new Thread(() => Loop(gameClient));
             _thread.Start();
         }
 
-        private void Loop()
+        private void Loop(GameClient gameClient)
         {
+            var server = new IPEndPoint(IPAddress.Loopback, Configuration.ServerPort);
+            
             while (true)
             {
                 Thread.Sleep(Configuration.TickInterval);
                 _tick++;
+                
+                var command = new PlayerCommand(
+                    _tick,
+                    gameClient.InputStorage.Horizontal,
+                    gameClient.InputStorage.Vertical);
+                
+                gameClient.InputStorage.Consume();
+                gameClient.Client.SendMessageUnreliable(command, server);
             }
         }
 

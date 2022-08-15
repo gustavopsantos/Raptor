@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Threading;
 using UnityEngine;
 using Raptor.Game.Shared;
@@ -12,7 +15,8 @@ namespace Raptor.Game.Server
     {
         private int _tick;
         private Thread _thread;
-        
+        private readonly Dictionary<IPEndPoint, ServerPlayer> _players = new();
+
         public void OnEnter(GameServer gameServer)
         {
             gameServer.Client = new RaptorClient(Configuration.ServerPort);
@@ -20,8 +24,15 @@ namespace Raptor.Game.Server
             gameServer.Client.RegisterRequestHandler<GetServerTime>(ReplyWithServerTime);
             gameServer.Client.RegisterRequestHandler<GetServerTick>(ReplyWithServerTick);
             gameServer.Client.RegisterRequestHandler<GetPlayerInfo>(ReplyWithPlayerInfo);
+            gameServer.Client.RegisterMessageHandler<PlayerCommand>(EnqueuePlayerCommand);
             _thread = new Thread(Loop);
             _thread.Start();
+        }
+
+        private void EnqueuePlayerCommand(Message<PlayerCommand> msg)
+        {
+            var serverPlayer = _players[msg.Source];
+            serverPlayer.CommandBuffer.Add(msg.Payload);
         }
 
         private async void ReplyWithPlayerInfo(Sequence<GetPlayerInfo> getPlayerInfoRequest)
@@ -32,7 +43,10 @@ namespace Raptor.Game.Server
             {
                 var serverPlayerPrefab = Resources.Load<ServerPlayer>("ServerPlayer");
                 var serverPlayer = Object.Instantiate(serverPlayerPrefab);
-                serverPlayer.Setup(playerInfo);
+                serverPlayer.Id = playerInfo.PlayerId.ToString();
+                serverPlayer.EndPoint = getPlayerInfoRequest.Source;
+                serverPlayer.CommandBuffer = new List<PlayerCommand>();
+                _players.Add(getPlayerInfoRequest.Source, serverPlayer);
             });
             
             await getPlayerInfoRequest.Reply(playerInfo, CancellationToken.None);
@@ -71,6 +85,22 @@ namespace Raptor.Game.Server
             {
                 Thread.Sleep(Configuration.TickInterval);
                 _tick++;
+
+                foreach (var player in _players.Values)
+                {
+                    if (!player.CommandBuffer.TryGet(c => c.Tick == _tick, out var command))
+                    {
+                        Debug.LogWarning($"Theres no command for tick {_tick}");
+                    }
+
+                    player.CommandBuffer.RemoveAll(c => c.Tick <= _tick);
+                    
+                    UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                    {
+                        var translation = new Vector3(command.Horizontal, command.Vertical, 0) * (float)Configuration.TickInterval.TotalSeconds * 4;
+                        player.transform.Translate(translation);
+                    });
+                }
             }
         }
     }

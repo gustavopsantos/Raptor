@@ -7,6 +7,7 @@ namespace Raptor.Game.Client
     {
         private IGameClientState _current;
         public RaptorClient Client { get; set; }
+        [field: SerializeField] public InputStorage InputStorage { get; private set; }
 
         private void Start()
         {

@@ -57,7 +57,7 @@ namespace Raptor.Game.Client
                 var localPlayerPrefab = Resources.Load<LocalPlayer>("LocalPlayer");
                 var localPlayer = UnityEngine.Object.Instantiate(localPlayerPrefab);
                 localPlayer.Setup(playerInfo.Payload);
-                gameClient.SwitchState(new GameClientConnectedState(timeClient, serverTick.Payload, rtt));
+                gameClient.SwitchState(new GameClientConnectedState(gameClient, timeClient, serverTick.Payload, rtt));
             }
             catch (Exception e)
             {
