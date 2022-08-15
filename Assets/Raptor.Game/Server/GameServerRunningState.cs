@@ -24,7 +24,13 @@ namespace Raptor.Game.Server
             gameServer.Client.RegisterRequestHandler<GetServerTick>(ReplyWithServerTick);
             gameServer.Client.RegisterRequestHandler<GetPlayerInfo>(ReplyWithPlayerInfo);
             gameServer.Client.RegisterMessageHandler<PlayerCommand>(EnqueuePlayerCommand);
-            _timer = new Timer(Tick, Configuration.TickInterval);
+            gameServer.Client.RegisterRequestHandler<GetServerInfo>(ReplyWithServerInfo);
+            _timer = new Timer(Tick, Configuration.TickInterval, () => DateTime.UtcNow);
+        }
+
+        private void ReplyWithServerInfo(Sequence<GetServerInfo> getServerInfoRequest)
+        {
+            getServerInfoRequest.Reply(new ServerInfo(_timer.StartedAt), CancellationToken.None);
         }
 
         private void EnqueuePlayerCommand(Message<PlayerCommand> msg)
@@ -69,7 +75,7 @@ namespace Raptor.Game.Server
         {
             GUILayout.Label("Running...");
             GUILayout.Label($"Tick: {_timer.Tick}");
-            GUILayout.Label($"Time: {DateTime.UtcNow.Print()}");
+            GUILayout.Label($"Time: {DateTime.UtcNow.ToString("h:mm:ss.fff")}");
         }
 
         public void OnExit(GameServer gameServer)

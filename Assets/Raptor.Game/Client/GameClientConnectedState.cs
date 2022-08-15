@@ -1,43 +1,33 @@
 using System;
 using System.Net;
-using System.Threading;
 using Raptor.Game.Shared;
-using Raptor.Interface;
 using UnityEngine;
+using Timer = Raptor.Game.Shared.Timer;
 
 namespace Raptor.Game.Client
 {
     public class GameClientConnectedState : IGameClientState
     {
-        private int _tick;
-        private Thread _thread;
         private readonly TimeClient _timeClient;
+        private readonly Timer _timer;
 
-        public GameClientConnectedState(GameClient gameClient, TimeClient timeClient, int serverTick, TimeSpan rtt)
+        public GameClientConnectedState(GameClient gameClient, TimeClient timeClient, DateTime serverTimerStartedAt)
         {
-            _tick = serverTick + (int)Math.Ceiling(Configuration.TickRate * (rtt + Configuration.CommandBuffer).TotalSeconds);
             _timeClient = timeClient;
-            _thread = new Thread(() => Loop(gameClient));
-            _thread.Start();
+            _timer = new Timer(t => Loop(t, gameClient), Configuration.TickInterval, () => timeClient.Time, serverTimerStartedAt - Configuration.CommandBuffer);
         }
 
-        private void Loop(GameClient gameClient)
+        private void Loop(double tick, GameClient gameClient)
         {
             var server = new IPEndPoint(IPAddress.Loopback, Configuration.ServerPort);
-            
-            while (true)
-            {
-                Thread.Sleep(Configuration.TickInterval);
-                _tick++;
-                
-                var command = new PlayerCommand(
-                    _tick,
-                    gameClient.InputStorage.Horizontal,
-                    gameClient.InputStorage.Vertical);
-                
-                gameClient.InputStorage.Consume();
-                gameClient.Client.SendMessageUnreliable(command, server);
-            }
+
+            var command = new PlayerCommand(
+                (int) tick,
+                gameClient.InputStorage.Horizontal,
+                gameClient.InputStorage.Vertical);
+
+            gameClient.InputStorage.Consume();
+            gameClient.Client.SendMessageUnreliable(command, server);
         }
 
         public void OnEnter(GameClient gameClient)
@@ -47,13 +37,13 @@ namespace Raptor.Game.Client
         public void Present(GameClient gameClient)
         {
             GUILayout.Label("Connected");
-            GUILayout.Label($"Tick: {_tick}");
-            GUILayout.Label($"Time: {_timeClient.Time.Print()}");
+            GUILayout.Label($"Tick: {_timer.Tick}");
+            GUILayout.Label($"Time: {_timeClient.Time.ToString("h:mm:ss.fff")}");
         }
 
         public void OnExit(GameClient gameClient)
         {
-            _thread.Abort();
+            _timer.Stop();
             gameClient.Client.Dispose();
         }
     }

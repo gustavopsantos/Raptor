@@ -54,10 +54,11 @@ namespace Raptor.Game.Client
                 await timeClient.Sync(rtt);
                 var serverTick = await gameClient.Client.Request<GetServerTick, int>(new GetServerTick(), address, CancellationToken.None);
                 var playerInfo = await gameClient.Client.Request<GetPlayerInfo, PlayerInfo>(new GetPlayerInfo(), address, CancellationToken.None);
+                var serverInfo = await gameClient.Client.Request<GetServerInfo, ServerInfo>(new GetServerInfo(), address, CancellationToken.None);
                 var localPlayerPrefab = Resources.Load<LocalPlayer>("LocalPlayer");
                 var localPlayer = UnityEngine.Object.Instantiate(localPlayerPrefab);
                 localPlayer.Setup(playerInfo.Payload);
-                gameClient.SwitchState(new GameClientConnectedState(gameClient, timeClient, serverTick.Payload, rtt));
+                gameClient.SwitchState(new GameClientConnectedState(gameClient, timeClient, serverInfo.Payload.TimerStartedAt));
             }
             catch (Exception e)
             {
