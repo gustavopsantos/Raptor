@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using Raptor.Connection;
 using Raptor.Enums;
 using Raptor.Extensions;
 using Raptor.Packets;
@@ -13,12 +12,11 @@ namespace Raptor
     internal class ShouldAcquirePacket
     {
         private readonly PacketSequenceStorage _storage;
-        private readonly IReadOnlyDictionary<IPEndPoint, ConnectionState> _connections;
+        private readonly IReadOnlyDictionary<IPEndPoint, Connection.Connection> _connections;
 
         internal ShouldAcquirePacket(
             PacketSequenceStorage storage,
-            IReadOnlyDictionary<IPEndPoint, ConnectionState> connections
-        )
+            IReadOnlyDictionary<IPEndPoint, Connection.Connection> connections)
         {
             _storage = storage;
             _connections = connections;

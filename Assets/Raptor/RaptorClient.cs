@@ -23,9 +23,9 @@ namespace Raptor
         private readonly ShouldAcquirePacket _shouldAcquirePacket;
         private readonly RetransmissionQueue _retransmissionQueue;
         private readonly PacketSequenceStorage _sequenceHistory = new();
-        private readonly ConcurrentDictionary<IPEndPoint, ConnectionState> _connections = new();
         private readonly ConcurrentDictionary<Type, Action<object, IPEndPoint>> _handlers = new();
         private readonly ConcurrentDictionary<Guid, TaskCompletionSource<object>> _awaiters = new();
+        private readonly ConcurrentDictionary<IPEndPoint, Connection.Connection> _connections = new();
 
         public RaptorClient(int port)
         {
@@ -126,8 +126,14 @@ namespace Raptor
 
         public async Task ConnectAsync(IPEndPoint host)
         {
+            var connection = new Connection.Connection
+            {
+                State = ConnectionState.Connecting,
+                EndPoint = host
+            };
+            
             _sequenceHistory.Initialize(host);
-            _connections.TryAdd(host, ConnectionState.Connecting);
+            _connections.TryAdd(host, connection);
             
             try
             {
@@ -135,7 +141,7 @@ namespace Raptor
                 
                 var connectionResponse = await SendSequence<ConnectionRequest, ConnectionResponse>(Guid.Empty, new ConnectionRequest(), host, Acquisition.Always, timeout.Token).ConfigureAwait(false);
                 var handshakeResponse = await connectionResponse.ReplyAndAwait<HandshakeRequest, HandshakeResponse>(new HandshakeRequest(), timeout.Token).ConfigureAwait(false);
-                _connections.TryUpdate(host, ConnectionState.Connected, ConnectionState.Connecting);
+                connection.State = ConnectionState.Connected;
             }
             catch (Exception e)
             {
@@ -153,15 +159,21 @@ namespace Raptor
                 Debug.LogWarning("Skipping Connection request");
                 return;
             }
+
+            var connection = new Connection.Connection
+            {
+                State = ConnectionState.Connecting,
+                EndPoint = connectionRequest.Source
+            };
             
             _sequenceHistory.Initialize(connectionRequest.Source);
-            _connections.TryAdd(connectionRequest.Source, ConnectionState.Connecting);
+            _connections.TryAdd(connectionRequest.Source, connection);
             
             try
             {
                 using var timeout = new CancellationTokenSource(Configuration.ConnectionTimeout);
                 var handshakeRequest = await connectionRequest.ReplyAndAwait<ConnectionResponse, HandshakeRequest>(new ConnectionResponse(), timeout.Token);
-                _connections.TryUpdate(connectionRequest.Source, ConnectionState.Connected, ConnectionState.Connecting);
+                connection.State = ConnectionState.Connected;
                 await handshakeRequest.Reply(new HandshakeResponse(), timeout.Token);
             }
             catch (Exception e)
@@ -188,7 +200,7 @@ namespace Raptor
         public Task BroadcastMessageReliable<T>(T payload, CancellationToken cancellationToken)
         {
             var netMessage = new NetMessage<T>(payload);
-            var connections = _connections.Where(c => c.Value == ConnectionState.Connected).Select(kvp => kvp.Key);
+            var connections = _connections.Where(c => c.Value.State == ConnectionState.Connected).Select(kvp => kvp.Key);
             var tasks = connections.Select(c => SendPacketReliable(netMessage, c, Acquisition.Sequenced, cancellationToken));
             return Task.WhenAll(tasks);
         }
