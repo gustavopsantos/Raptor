@@ -267,5 +267,15 @@ namespace Raptor
                 }
             });
         }
+        
+        public void RegisterHandler<T>(IRequestHandler<T> handler)
+        {
+            RegisterRequestHandler<T>(handler.Handle);
+        }
+
+        public void RegisterHandler<T>(IMessageHandler<T> handler)
+        {
+            RegisterMessageHandler<T>(handler.Handle);
+        }
     }
 }
