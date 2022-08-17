@@ -22,7 +22,6 @@ namespace Raptor
         private readonly DatagramClient _datagramClient;
         private readonly ShouldAcquirePacket _shouldAcquirePacket;
         private readonly RetransmissionQueue _retransmissionQueue;
-        private readonly PacketSequenceStorage _sequenceHistory = new();
         private readonly ConcurrentDictionary<Type, Action<object, IPEndPoint>> _handlers = new();
         private readonly ConcurrentDictionary<Guid, TaskCompletionSource<object>> _awaiters = new();
         private readonly ConcurrentDictionary<IPEndPoint, Connection.Connection> _connections = new();
@@ -31,7 +30,7 @@ namespace Raptor
         {
             _retransmissionQueue = new RetransmissionQueue(this);
             _datagramClient = new DatagramClient(HandleDatagram, port);
-            _shouldAcquirePacket = new ShouldAcquirePacket(_sequenceHistory, _connections);
+            _shouldAcquirePacket = new ShouldAcquirePacket(_connections);
             RegisterRequestHandler<ConnectionRequest>(HandleConnectionRequestAsync);
         }
 
@@ -49,9 +48,9 @@ namespace Raptor
 
         private Packet SendPayload(object payload, IPEndPoint recipient, Delivery delivery, Acquisition acquisition)
         {
-            var sequence = delivery == Delivery.Unreliable && acquisition == Acquisition.Always
+            var sequence = delivery == Delivery.Unreliable
                 ? -1
-                : _sequenceHistory.Outgoing.Increment(recipient, acquisition);
+                : _connections[recipient].SequenceStorage.Outgoing.Increment(recipient, acquisition);
             
             var packet = new Packet(sequence, delivery, acquisition, payload);
             SendPacket(packet, recipient);
@@ -90,15 +89,19 @@ namespace Raptor
             {
                 return;
             }
+
+            if (packet.Acquisition != Acquisition.Always)
+            {
+                AcquirePacket(packet, source);
+            }
             
-            AcquirePacket(packet, source);
             AckIfRequired(packet, source);
             HandlePayload(packet, source);
         }
 
         private void AcquirePacket(Packet packet, IPEndPoint source)
         {
-            _sequenceHistory.Incoming.Set(source, packet.Acquisition, packet.Sequence);
+            _connections[source].SequenceStorage.Incoming.Set(source, packet.Acquisition, packet.Sequence);
             Debug.Log($"Packet {packet.Payload.GetType().ReadableName()} acquired from {source} at {TimeProfiler.Sample()}");
         }
 
@@ -129,10 +132,10 @@ namespace Raptor
             var connection = new Connection.Connection
             {
                 State = ConnectionState.Connecting,
-                EndPoint = host
+                EndPoint = host,
+                SequenceStorage = new PacketSequenceStorage(host)
             };
             
-            _sequenceHistory.Initialize(host);
             _connections.TryAdd(host, connection);
             
             try
@@ -146,7 +149,6 @@ namespace Raptor
             catch (Exception e)
             {
                 _connections.TryRemove(host, out _);
-                _sequenceHistory.Remove(host);
                 Debug.LogError(e);
                 throw;
             }
@@ -163,10 +165,10 @@ namespace Raptor
             var connection = new Connection.Connection
             {
                 State = ConnectionState.Connecting,
-                EndPoint = connectionRequest.Source
+                EndPoint = connectionRequest.Source,
+                SequenceStorage = new PacketSequenceStorage(connectionRequest.Source)
             };
             
-            _sequenceHistory.Initialize(connectionRequest.Source);
             _connections.TryAdd(connectionRequest.Source, connection);
             
             try
@@ -179,7 +181,6 @@ namespace Raptor
             catch (Exception e)
             {
                 _connections.TryRemove(connectionRequest.Source, out _);
-                _sequenceHistory.Remove(connectionRequest.Source);
                 Debug.LogError(e);
                 throw;
             }

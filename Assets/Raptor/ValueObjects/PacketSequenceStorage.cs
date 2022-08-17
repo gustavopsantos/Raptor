@@ -56,12 +56,12 @@ namespace Raptor.ValueObjects
         public readonly Route Incoming = new();
         public readonly Route Outgoing = new();
 
-        public void Initialize(IPEndPoint endpoint)
+        public PacketSequenceStorage(IPEndPoint endpoint)
         {
             Incoming.Initialize(endpoint);
             Outgoing.Initialize(endpoint);
         }
-        
+
         public void Remove(IPEndPoint endpoint)
         {
             Incoming.Remove(endpoint);
