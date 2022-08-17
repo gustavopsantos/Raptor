@@ -202,10 +202,25 @@ namespace Raptor
             return SendPacketReliable(netMessage, recipient, Acquisition.Sequenced, cancellationToken);
         }
 
+        public void BroadcastMessageUnreliable<T>(T payload)
+        {
+            var netMessage = new NetMessage<T>(payload);
+            var connections = _connections
+                .Where(c => c.Value.State == ConnectionState.Connected)
+                .Select(kvp => kvp.Key);
+
+            foreach (var connection in connections)
+            {
+                SendPacketUnreliable(netMessage, connection);
+            }
+        }
+
         public Task BroadcastMessageReliable<T>(T payload, CancellationToken cancellationToken)
         {
             var netMessage = new NetMessage<T>(payload);
-            var connections = _connections.Where(c => c.Value.State == ConnectionState.Connected).Select(kvp => kvp.Key);
+            var connections = _connections
+                .Where(c => c.Value.State == ConnectionState.Connected)
+                .Select(kvp => kvp.Key);
             var tasks = connections.Select(c => SendPacketReliable(netMessage, c, Acquisition.Sequenced, cancellationToken));
             return Task.WhenAll(tasks);
         }
