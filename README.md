@@ -1,3 +1,5 @@
+<div align=center><img src="Graphics/raptor.png" width="256" height="256"></div>
+
 <div align=center>   
 
 # Raptor
@@ -27,3 +29,9 @@ Raptor does not comes with simulation tool, since there are already good tools f
 - [ ] 🎚️ Upstream Throttle
 - [ ] ⌛ Server Rollback
 - [ ] 👻 Semi Fixed Timestep Interpolation
+
+<div align=center>
+
+## Credits
+<a href="https://www.flaticon.com/free-icons/dino" title="dino icon">Raptor icon created by max.icons - Flaticon</a>
+</div>
