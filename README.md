@@ -20,14 +20,14 @@ Raptor does not comes with simulation tool, since there are already good tools f
 - [ ] 🔗 Connection Maintainer (Keep-Alive)
 
 ## Sample Game Roadmap
-- [x] 🎮 Input Buffering
-- [ ] 🔮 Client Prediction
-- [ ] 🚨 Server Reconciliation
 - [x] 🔁 RTT Measurement
-- [x] ⌚ Clock Synchonization
-- [x] ⏱️ Timer (Phase/Frequency) Synchonization
-- [ ] 🎚️ Upstream Throttle
+- [x] 🎮 Input Buffering
 - [ ] ⌛ Server Rollback
+- [ ] 🔮 Client Prediction
+- [ ] 🎚️ Upstream Throttle
+- [ ] 🚨 Server Reconciliation
+- [x] ⌚ Time Synchonization
+- [x] ⏱️ Timing Synchonization
 - [ ] 👻 Semi Fixed Timestep Interpolation
 
 <div align=center>
