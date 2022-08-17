@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Net;
 using Raptor.Game.Shared;
 using UnityEngine;
+using Input = Raptor.Game.Shared.GameInput.Input;
 
 namespace Raptor.Game.Server
 {
@@ -9,6 +10,6 @@ namespace Raptor.Game.Server
     {
         public string Id;
         public IPEndPoint EndPoint;
-        public List<PlayerCommand> CommandBuffer;
+        public List<Ticked<Input>> CommandBuffer;
     }
 }

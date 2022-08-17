@@ -3,6 +3,7 @@ using System.Net;
 using Raptor.Game.Client.Clock;
 using Raptor.Game.Shared;
 using UnityEngine;
+using Input = Raptor.Game.Shared.GameInput.Input;
 using Timer = Raptor.Game.Shared.Timing.Timer;
 
 namespace Raptor.Game.Client
@@ -21,14 +22,8 @@ namespace Raptor.Game.Client
         private void Loop(double tick, GameClient gameClient)
         {
             var server = new IPEndPoint(IPAddress.Loopback, Configuration.ServerPort);
-
-            var command = new PlayerCommand(
-                (int) tick,
-                gameClient.InputStorage.Horizontal,
-                gameClient.InputStorage.Vertical);
-
-            gameClient.InputStorage.Consume();
-            gameClient.Client.SendMessageUnreliable(command, server);
+            var tickedInput = new Ticked<Input>((int) tick, gameClient.InputBuffer.Consume());
+            gameClient.Client.SendMessageUnreliable(tickedInput, server);
         }
 
         public void OnEnter(GameClient gameClient)

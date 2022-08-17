@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using Raptor.Game.Server.Clock;
+using Raptor.Game.Server.GameInput;
 using Raptor.Game.Server.RTTMeasurement;
 using Raptor.Game.Server.Timing;
 using Raptor.Game.Shared;
 using Raptor.Interface;
 using UnityEngine;
+using Input = Raptor.Game.Shared.GameInput.Input;
 using Object = UnityEngine.Object;
 using Timer = Raptor.Game.Shared.Timing.Timer;
 
@@ -25,14 +27,8 @@ namespace Raptor.Game.Server.StateMachine
             gameServer.Client.RegisterHandler(new TimeServer());
             gameServer.Client.RegisterHandler(new TimingServer(_timer));
             gameServer.Client.RegisterHandler(new PingRequestHandler());
+            gameServer.Client.RegisterHandler(new InputMessageHandler(_players));
             gameServer.Client.RegisterRequestHandler<GetPlayerInfo>(ReplyWithPlayerInfo);
-            gameServer.Client.RegisterMessageHandler<PlayerCommand>(EnqueuePlayerCommand);
-        }
-
-        private void EnqueuePlayerCommand(Message<PlayerCommand> msg)
-        {
-            var serverPlayer = _players[msg.Source];
-            serverPlayer.CommandBuffer.Add(msg.Payload);
         }
 
         private async void ReplyWithPlayerInfo(Sequence<GetPlayerInfo> getPlayerInfoRequest)
@@ -45,7 +41,7 @@ namespace Raptor.Game.Server.StateMachine
                 var serverPlayer = Object.Instantiate(serverPlayerPrefab);
                 serverPlayer.Id = playerInfo.PlayerId.ToString();
                 serverPlayer.EndPoint = getPlayerInfoRequest.Source;
-                serverPlayer.CommandBuffer = new List<PlayerCommand>();
+                serverPlayer.CommandBuffer = new List<Ticked<Input>>();
                 _players.Add(getPlayerInfoRequest.Source, serverPlayer);
             });
 
@@ -78,7 +74,8 @@ namespace Raptor.Game.Server.StateMachine
 
                 UnityMainThreadDispatcher.Instance().Enqueue(() =>
                 {
-                    var translation = new Vector3(command.Horizontal, command.Vertical, 0) * (float) Configuration.TickInterval.TotalSeconds * 4;
+                    var input = new Vector2(command.Value.Horizontal, command.Value.Vertical);
+                    var translation = (float )Configuration.TickInterval.TotalSeconds * 4 * input;
                     player.transform.Translate(translation);
                 });
             }

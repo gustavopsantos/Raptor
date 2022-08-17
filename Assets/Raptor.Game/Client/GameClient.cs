@@ -1,5 +1,6 @@
 using UnityEngine;
 using JetBrains.Annotations;
+using Raptor.Game.Client.GameInput;
 
 namespace Raptor.Game.Client
 {
@@ -7,7 +8,7 @@ namespace Raptor.Game.Client
     {
         private IGameClientState _current;
         public RaptorClient Client { get; set; }
-        [field: SerializeField] public InputStorage InputStorage { get; private set; }
+        [field: SerializeField] public InputBuffer InputBuffer { get; private set; }
 
         private void Start()
         {
