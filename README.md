@@ -7,16 +7,36 @@ Raptor is an extension on top of the User Datagram Protocol (<a href="https://en
 ⚠️ Since this is still a PoC I dont recomment using it in any project. ⚠️
 </div>
 
-# Simulation
+## Simulation
 Raptor does not comes with simulation tool, since there are already good tools for that such as <a href="https://github.com/jagt/clumsy">Clumsy</a>, I see no point of adding it inside the protocol.
 
-# TODO  
-- Adds connection maintainer (Keep-Alive)  
-- Adds sample game  
-- Improves ARQ protocol  
-- Adds unit tests  
-- Removes unity logger dependency from Raptor assembly, and make it pure .NET   
-- Improves serialization performance and memory footprint  
-- Improves code readability  
-- Adds security  
-- Adds RTT measurements/benchmark for all APIs
+## Transport Layer Roadmap
+> :x: ✒️ Serialization Protocol   
+
+> :x: 🔒 Encryption
+
+> :x: 🛡️ Attacks Protection 
+
+> :x: ♻️ ARQ Protocol
+
+> :x: 🔗 Connection Maintainer (Keep-Alive)
+
+## Sample Game Roadmap
+
+> :x: 🎮 Input Buffering
+
+> :x: 🔮 Client Prediction
+
+> :x: 🚨 Server Reconciliation  
+
+> :x: 🔁 RTT Measurement
+
+> :x: ⌚ Clock Synchonization  
+
+> :x: ⏱️ Timer (Phase/Frequency) Synchonization   
+
+> :x: 🎚️ Upstream Throttle
+
+> :x: ⌛ Server Rollback  
+
+> :x: 👻 Semi Fixed Timestep Interpolation 
