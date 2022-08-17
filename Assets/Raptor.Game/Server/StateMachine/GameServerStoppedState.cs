@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Raptor.Game.Server
+namespace Raptor.Game.Server.StateMachine
 {
     public class GameServerStoppedState : IGameServerState
     {

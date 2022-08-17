@@ -1,7 +1,7 @@
 using JetBrains.Annotations;
 using UnityEngine;
 
-namespace Raptor.Game.Server
+namespace Raptor.Game.Server.StateMachine
 {
     public class GameServer : MonoBehaviour
     {

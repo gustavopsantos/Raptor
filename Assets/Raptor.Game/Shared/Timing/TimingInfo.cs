@@ -1,13 +1,13 @@
 ﻿using System;
 
-namespace Raptor.Game.Shared
+namespace Raptor.Game.Shared.Timing
 {
     [Serializable]
-    public readonly struct ServerInfo
+    public readonly struct TimingInfo
     {
         public DateTime TimerStartedAt { get; }
 
-        public ServerInfo(DateTime timerStartedAt)
+        public TimingInfo(DateTime timerStartedAt)
         {
             TimerStartedAt = timerStartedAt;
         }

@@ -2,14 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
-using UnityEngine;
+using Raptor.Game.Server.Clock;
+using Raptor.Game.Server.RTTMeasurement;
+using Raptor.Game.Server.Timing;
 using Raptor.Game.Shared;
 using Raptor.Interface;
+using UnityEngine;
 using Object = UnityEngine.Object;
-using Ping = Raptor.Game.Shared.Ping;
-using Timer = Raptor.Game.Shared.Timer;
+using Timer = Raptor.Game.Shared.Timing.Timer;
 
-namespace Raptor.Game.Server
+namespace Raptor.Game.Server.StateMachine
 {
     public class GameServerRunningState : IGameServerState
     {
@@ -18,19 +20,13 @@ namespace Raptor.Game.Server
 
         public void OnEnter(GameServer gameServer)
         {
+            _timer = new Timer(Tick, Configuration.TickInterval, () => DateTime.UtcNow);
             gameServer.Client = new RaptorClient(Configuration.ServerPort);
-            gameServer.Client.RegisterRequestHandler<Ping>(ReplyWithPong);
-            gameServer.Client.RegisterRequestHandler<GetServerTime>(ReplyWithServerTime);
-            gameServer.Client.RegisterRequestHandler<GetServerTick>(ReplyWithServerTick);
+            gameServer.Client.RegisterHandler(new TimeServer());
+            gameServer.Client.RegisterHandler(new TimingServer(_timer));
+            gameServer.Client.RegisterHandler(new PingRequestHandler());
             gameServer.Client.RegisterRequestHandler<GetPlayerInfo>(ReplyWithPlayerInfo);
             gameServer.Client.RegisterMessageHandler<PlayerCommand>(EnqueuePlayerCommand);
-            gameServer.Client.RegisterRequestHandler<GetServerInfo>(ReplyWithServerInfo);
-            _timer = new Timer(Tick, Configuration.TickInterval, () => DateTime.UtcNow);
-        }
-
-        private void ReplyWithServerInfo(Sequence<GetServerInfo> getServerInfoRequest)
-        {
-            getServerInfoRequest.Reply(new ServerInfo(_timer.StartedAt), CancellationToken.None);
         }
 
         private void EnqueuePlayerCommand(Message<PlayerCommand> msg)
@@ -54,21 +50,6 @@ namespace Raptor.Game.Server
             });
 
             await getPlayerInfoRequest.Reply(playerInfo, CancellationToken.None);
-        }
-
-        private void ReplyWithServerTick(Sequence<GetServerTick> getServerTickRequest)
-        {
-            getServerTickRequest.Reply(_timer.Tick, CancellationToken.None);
-        }
-
-        private void ReplyWithServerTime(Sequence<GetServerTime> getServerTimeRequest)
-        {
-            getServerTimeRequest.Reply(DateTime.UtcNow, CancellationToken.None);
-        }
-
-        private void ReplyWithPong(Sequence<Ping> pingRequest)
-        {
-            pingRequest.Reply(new Pong(), CancellationToken.None);
         }
 
         public void Present(GameServer gameServer)

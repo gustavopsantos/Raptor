@@ -1,8 +1,9 @@
 using System;
 using System.Net;
+using Raptor.Game.Client.Clock;
 using Raptor.Game.Shared;
 using UnityEngine;
-using Timer = Raptor.Game.Shared.Timer;
+using Timer = Raptor.Game.Shared.Timing.Timer;
 
 namespace Raptor.Game.Client
 {

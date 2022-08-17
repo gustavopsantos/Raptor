@@ -1,9 +1,7 @@
 using System;
 using System.Threading;
-using UnityEngine;
-using UnityEngine.Assertions;
 
-namespace Raptor.Game.Shared
+namespace Raptor.Game.Shared.Timing
 {
     public class Timer
     {

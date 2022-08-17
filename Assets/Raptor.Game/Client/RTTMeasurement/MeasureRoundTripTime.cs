@@ -2,9 +2,9 @@ using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Raptor.Game.Shared;
+using Raptor.Game.Shared.RTTMeasurement;
 
-namespace Raptor.Game.Client.NetworkStatistics
+namespace Raptor.Game.Client.RTTMeasurement
 {
     public static class MeasureRoundTripTime
     {

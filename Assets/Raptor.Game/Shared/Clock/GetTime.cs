@@ -1,13 +1,13 @@
 using System;
 
-namespace Raptor.Game.Shared
+namespace Raptor.Game.Shared.Clock
 {
     [Serializable]
-    public readonly struct GetServerTime
+    public readonly struct GetTime
     {
         public DateTime Time { get; }
 
-        public GetServerTime(DateTime time)
+        public GetTime(DateTime time)
         {
             Time = time;
         }
