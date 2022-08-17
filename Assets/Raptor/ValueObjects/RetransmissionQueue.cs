@@ -8,6 +8,7 @@ using System.Threading;
 using Raptor.Extensions;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Raptor.Enums;
 using Raptor.Packets;
 using UnityEngine.Assertions;
 
@@ -18,7 +19,7 @@ namespace Raptor.ValueObjects
         private readonly RaptorClient _mean;
         private readonly Thread _retransmissionThread;
         private readonly ConcurrentDictionary<IPEndPoint, List<Packet>> _pending = new();
-        private readonly ConcurrentDictionary<(int, IPEndPoint), TaskCompletionSource<object>> _awaiters = new();
+        private readonly ConcurrentDictionary<(int, Acquisition, IPEndPoint), TaskCompletionSource<object>> _awaiters = new();
 
         public RetransmissionQueue(RaptorClient mean)
         {
@@ -32,7 +33,7 @@ namespace Raptor.ValueObjects
                 
                 lock (this)
                 {
-                    if (_awaiters.TryRemove((ack.Sequence, source), out var awaiter))
+                    if (_awaiters.TryRemove((ack.Sequence, ack.Acquisition, source), out var awaiter))
                     {
                         Assert.IsNotNull(awaiter);
                         awaiter.TrySetResult(null);
@@ -83,7 +84,7 @@ namespace Raptor.ValueObjects
 
                 var queue = _pending[recipient];
 
-                if (queue.Count(msg => msg.Sequence == packet.Sequence) != 0)
+                if (queue.Count(msg => msg.Sequence == packet.Sequence && msg.Acquisition == packet.Acquisition) != 0)
                 {
                     throw new Exception(
                         $"Something went wrong! Tried to add msg with seq {packet.Sequence} {packet.Delivery} {packet.Acquisition} {recipient} {packet.Payload.GetType().ReadableName()}");
@@ -92,19 +93,18 @@ namespace Raptor.ValueObjects
                 _pending[recipient].Add(packet);
                 var tcs = new TaskCompletionSource<object>();
                 tcs.Task.ConfigureAwait(false);
-                _awaiters.TryAdd((packet.Sequence, recipient), tcs);
+                _awaiters.TryAdd((packet.Sequence, packet.Acquisition, recipient), tcs);
                 return tcs;
             }
         }
 
-        public void Remove(IPEndPoint recipient, int sequence)
+        public void Remove(Packet packet, IPEndPoint recipient)
         {
             lock (this)
             {
-                var tuple = _pending[recipient].Single(t => t.Sequence == sequence);
-                _pending[recipient].Remove(tuple);
+                _pending[recipient].Remove(packet);
 
-                if (_awaiters.TryGetValue((sequence, recipient), out var awaiter))
+                if (_awaiters.TryGetValue((packet.Sequence, packet.Acquisition, recipient), out var awaiter))
                 {
                     awaiter.TrySetCanceled();
                 }

@@ -48,7 +48,7 @@ namespace Raptor
 
         private Packet SendPayload(object payload, IPEndPoint recipient, Delivery delivery, Acquisition acquisition)
         {
-            var sequence = delivery == Delivery.Unreliable
+            var sequence = delivery == Delivery.Unreliable && acquisition == Acquisition.Always
                 ? -1
                 : _connections[recipient].SequenceStorage.Outgoing.Increment(recipient, acquisition);
             
@@ -72,7 +72,7 @@ namespace Raptor
 
             cancellationToken.Register(() =>
             {
-                _retransmissionQueue.Remove(recipient, packet.Sequence);
+                _retransmissionQueue.Remove(packet, recipient);
                 awaiter.TrySetCanceled();
             });
 
@@ -109,7 +109,7 @@ namespace Raptor
         {
             if (packet.Delivery == Delivery.Reliable)
             {
-                SendPayload(new Ack(packet.Sequence), source, Delivery.Unreliable, Acquisition.Always);
+                SendPayload(new Ack(packet.Sequence, packet.Acquisition), source, Delivery.Unreliable, Acquisition.Always);
             }
         }
 
