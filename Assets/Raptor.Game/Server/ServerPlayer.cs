@@ -11,5 +11,20 @@ namespace Raptor.Game.Server
         public string Id;
         public IPEndPoint EndPoint;
         public List<Ticked<Input>> CommandBuffer;
+
+        private Vector2 _position;
+
+        public Vector2 Position
+        {
+            set
+            {
+                _position = value;
+                UnityMainThreadDispatcher.Instance().Enqueue(() => { transform.position = value; });
+            }
+            get
+            {
+                return _position;
+            }
+        }
     }
 }

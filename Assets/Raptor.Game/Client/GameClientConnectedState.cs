@@ -17,6 +17,7 @@ namespace Raptor.Game.Client
         {
             _timeClient = timeClient;
             _timer = new Timer(t => Loop(t, gameClient), Configuration.TickInterval, () => timeClient.Time, serverTimerStartedAt - Configuration.CommandBuffer);
+            gameClient.Client.RegisterHandler(new SnapshotHandler());
         }
 
         private void Loop(double tick, GameClient gameClient)

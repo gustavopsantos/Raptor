@@ -22,7 +22,7 @@ namespace Raptor.Game.Server.StateMachine
 
         public void OnEnter(GameServer gameServer)
         {
-            _timer = new Timer(Tick, Configuration.TickInterval, () => DateTime.UtcNow);
+            _timer = new Timer(t => Tick(t, gameServer), Configuration.TickInterval, () => DateTime.UtcNow);
             gameServer.Client = new RaptorClient(Configuration.ServerPort);
             gameServer.Client.RegisterHandler(new TimeServer());
             gameServer.Client.RegisterHandler(new TimingServer(_timer));
@@ -61,7 +61,7 @@ namespace Raptor.Game.Server.StateMachine
             gameServer.Client.Dispose();
         }
 
-        private void Tick(double tick)
+        private void Tick(double tick, GameServer gameServer)
         {
             foreach (var player in _players.Values)
             {
@@ -71,13 +71,14 @@ namespace Raptor.Game.Server.StateMachine
                 }
 
                 player.CommandBuffer.RemoveAll(c => c.Tick <= _timer.Tick);
+                var input = new Vector2(command.Value.Horizontal, command.Value.Vertical);
+                var translation = (float) Configuration.TickInterval.TotalSeconds * 4 * input;
+                var position = player.Position + translation;
+                player.Position = position;
 
-                UnityMainThreadDispatcher.Instance().Enqueue(() =>
-                {
-                    var input = new Vector2(command.Value.Horizontal, command.Value.Vertical);
-                    var translation = (float )Configuration.TickInterval.TotalSeconds * 4 * input;
-                    player.transform.Translate(translation);
-                });
+                var tickedPosition = new Ticked<(float, float)>((int) tick, (position.x, position.y));
+                var snapshot = new Snapshot(tickedPosition);
+                gameServer.Client.BroadcastMessageUnreliable(snapshot);
             }
         }
     }
