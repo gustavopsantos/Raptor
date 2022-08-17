@@ -21,14 +21,12 @@ namespace Raptor
     {
         private readonly DatagramClient _datagramClient;
         private readonly ShouldAcquirePacket _shouldAcquirePacket;
-        private readonly RetransmissionQueue _retransmissionQueue;
         private readonly ConcurrentDictionary<Type, Action<object, IPEndPoint>> _handlers = new();
         private readonly ConcurrentDictionary<Guid, TaskCompletionSource<object>> _awaiters = new();
         private readonly ConcurrentDictionary<IPEndPoint, Connection.Connection> _connections = new();
 
         public RaptorClient(int port)
         {
-            _retransmissionQueue = new RetransmissionQueue(this);
             _datagramClient = new DatagramClient(HandleDatagram, port);
             _shouldAcquirePacket = new ShouldAcquirePacket(_connections);
             RegisterRequestHandler<ConnectionRequest>(HandleConnectionRequestAsync);
@@ -36,7 +34,10 @@ namespace Raptor
 
         public void Dispose()
         {
-            _retransmissionQueue.Dispose();
+            foreach (var connection in _connections.Values)
+            {
+                connection.Dispose();
+            }
             _datagramClient.Dispose();
         }
 
@@ -67,12 +68,13 @@ namespace Raptor
 
         private Task SendPacketReliable(object payload, IPEndPoint recipient, Acquisition acquisition, CancellationToken cancellationToken)
         {
+            var connection = _connections[recipient];
             var packet = SendPayload(payload, recipient, Delivery.Reliable, acquisition);
-            var awaiter = _retransmissionQueue.Add(packet, recipient);
+            var awaiter = connection.RetransmissionQueue.Add(packet, recipient);
 
             cancellationToken.Register(() =>
             {
-                _retransmissionQueue.Remove(packet, recipient);
+                connection.RetransmissionQueue.Remove(packet, recipient);
                 awaiter.TrySetCanceled();
             });
 
@@ -132,8 +134,9 @@ namespace Raptor
             var connection = new Connection.Connection
             {
                 State = ConnectionState.Connecting,
-                EndPoint = host,
-                SequenceStorage = new PacketSequenceStorage(host)
+                Endpoint = host,
+                SequenceStorage = new PacketSequenceStorage(host),
+                RetransmissionQueue = new RetransmissionQueue(this)
             };
             
             _connections.TryAdd(host, connection);
@@ -165,8 +168,9 @@ namespace Raptor
             var connection = new Connection.Connection
             {
                 State = ConnectionState.Connecting,
-                EndPoint = connectionRequest.Source,
-                SequenceStorage = new PacketSequenceStorage(connectionRequest.Source)
+                Endpoint = connectionRequest.Source,
+                SequenceStorage = new PacketSequenceStorage(connectionRequest.Source),
+                RetransmissionQueue = new RetransmissionQueue(this)
             };
             
             _connections.TryAdd(connectionRequest.Source, connection);

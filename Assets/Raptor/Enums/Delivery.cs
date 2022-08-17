@@ -6,3 +6,10 @@
         Unreliable,
     }
 }
+
+// ReliableAlways (Seq)
+// ReliableOrdered (Seq)
+// ReliableSequenced (Seq)
+// UnreliableAlways ( - )
+// UnreliableOrdered (Seq)
+// UnreliableSequenced (Seq)

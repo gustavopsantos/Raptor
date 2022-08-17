@@ -27,7 +27,7 @@ namespace Raptor.Sample
 
             await client.ConnectAsync(serverAddress);
             
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < 1024; i++)
             {
                 client.SendMessageReliable((i + 1).ToString(), serverAddress, timeout.Token);
             }
