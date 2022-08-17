@@ -22,16 +22,15 @@ namespace Raptor
         private readonly DatagramClient _datagramClient;
         private readonly ShouldAcquirePacket _shouldAcquirePacket;
         private readonly RetransmissionQueue _retransmissionQueue;
-        private readonly PacketSequenceStorage _sequenceHistory = new();
-        private readonly ConcurrentDictionary<IPEndPoint, ConnectionState> _connections = new();
         private readonly ConcurrentDictionary<Type, Action<object, IPEndPoint>> _handlers = new();
         private readonly ConcurrentDictionary<Guid, TaskCompletionSource<object>> _awaiters = new();
+        private readonly ConcurrentDictionary<IPEndPoint, Connection.Connection> _connections = new();
 
         public RaptorClient(int port)
         {
             _retransmissionQueue = new RetransmissionQueue(this);
             _datagramClient = new DatagramClient(HandleDatagram, port);
-            _shouldAcquirePacket = new ShouldAcquirePacket(_sequenceHistory, _connections);
+            _shouldAcquirePacket = new ShouldAcquirePacket(_connections);
             RegisterRequestHandler<ConnectionRequest>(HandleConnectionRequestAsync);
         }
 
@@ -51,7 +50,7 @@ namespace Raptor
         {
             var sequence = delivery == Delivery.Unreliable && acquisition == Acquisition.Always
                 ? -1
-                : _sequenceHistory.Outgoing.Increment(recipient, acquisition);
+                : _connections[recipient].SequenceStorage.Outgoing.Increment(recipient, acquisition);
             
             var packet = new Packet(sequence, delivery, acquisition, payload);
             SendPacket(packet, recipient);
@@ -73,7 +72,7 @@ namespace Raptor
 
             cancellationToken.Register(() =>
             {
-                _retransmissionQueue.Remove(recipient, packet.Sequence);
+                _retransmissionQueue.Remove(packet, recipient);
                 awaiter.TrySetCanceled();
             });
 
@@ -90,15 +89,19 @@ namespace Raptor
             {
                 return;
             }
+
+            if (packet.Acquisition != Acquisition.Always)
+            {
+                AcquirePacket(packet, source);
+            }
             
-            AcquirePacket(packet, source);
             AckIfRequired(packet, source);
             HandlePayload(packet, source);
         }
 
         private void AcquirePacket(Packet packet, IPEndPoint source)
         {
-            _sequenceHistory.Incoming.Set(source, packet.Acquisition, packet.Sequence);
+            _connections[source].SequenceStorage.Incoming.Set(source, packet.Acquisition, packet.Sequence);
             Debug.Log($"Packet {packet.Payload.GetType().ReadableName()} acquired from {source} at {TimeProfiler.Sample()}");
         }
 
@@ -106,7 +109,7 @@ namespace Raptor
         {
             if (packet.Delivery == Delivery.Reliable)
             {
-                SendPayload(new Ack(packet.Sequence), source, Delivery.Unreliable, Acquisition.Always);
+                SendPayload(new Ack(packet.Sequence, packet.Acquisition), source, Delivery.Unreliable, Acquisition.Always);
             }
         }
 
@@ -126,8 +129,14 @@ namespace Raptor
 
         public async Task ConnectAsync(IPEndPoint host)
         {
-            _sequenceHistory.Initialize(host);
-            _connections.TryAdd(host, ConnectionState.Connecting);
+            var connection = new Connection.Connection
+            {
+                State = ConnectionState.Connecting,
+                EndPoint = host,
+                SequenceStorage = new PacketSequenceStorage(host)
+            };
+            
+            _connections.TryAdd(host, connection);
             
             try
             {
@@ -135,12 +144,11 @@ namespace Raptor
                 
                 var connectionResponse = await SendSequence<ConnectionRequest, ConnectionResponse>(Guid.Empty, new ConnectionRequest(), host, Acquisition.Always, timeout.Token).ConfigureAwait(false);
                 var handshakeResponse = await connectionResponse.ReplyAndAwait<HandshakeRequest, HandshakeResponse>(new HandshakeRequest(), timeout.Token).ConfigureAwait(false);
-                _connections.TryUpdate(host, ConnectionState.Connected, ConnectionState.Connecting);
+                connection.State = ConnectionState.Connected;
             }
             catch (Exception e)
             {
                 _connections.TryRemove(host, out _);
-                _sequenceHistory.Remove(host);
                 Debug.LogError(e);
                 throw;
             }
@@ -153,21 +161,26 @@ namespace Raptor
                 Debug.LogWarning("Skipping Connection request");
                 return;
             }
+
+            var connection = new Connection.Connection
+            {
+                State = ConnectionState.Connecting,
+                EndPoint = connectionRequest.Source,
+                SequenceStorage = new PacketSequenceStorage(connectionRequest.Source)
+            };
             
-            _sequenceHistory.Initialize(connectionRequest.Source);
-            _connections.TryAdd(connectionRequest.Source, ConnectionState.Connecting);
+            _connections.TryAdd(connectionRequest.Source, connection);
             
             try
             {
                 using var timeout = new CancellationTokenSource(Configuration.ConnectionTimeout);
                 var handshakeRequest = await connectionRequest.ReplyAndAwait<ConnectionResponse, HandshakeRequest>(new ConnectionResponse(), timeout.Token);
-                _connections.TryUpdate(connectionRequest.Source, ConnectionState.Connected, ConnectionState.Connecting);
+                connection.State = ConnectionState.Connected;
                 await handshakeRequest.Reply(new HandshakeResponse(), timeout.Token);
             }
             catch (Exception e)
             {
                 _connections.TryRemove(connectionRequest.Source, out _);
-                _sequenceHistory.Remove(connectionRequest.Source);
                 Debug.LogError(e);
                 throw;
             }
@@ -188,7 +201,7 @@ namespace Raptor
         public Task BroadcastMessageReliable<T>(T payload, CancellationToken cancellationToken)
         {
             var netMessage = new NetMessage<T>(payload);
-            var connections = _connections.Where(c => c.Value == ConnectionState.Connected).Select(kvp => kvp.Key);
+            var connections = _connections.Where(c => c.Value.State == ConnectionState.Connected).Select(kvp => kvp.Key);
             var tasks = connections.Select(c => SendPacketReliable(netMessage, c, Acquisition.Sequenced, cancellationToken));
             return Task.WhenAll(tasks);
         }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using Raptor.Connection;
 using Raptor.Enums;
 using Raptor.Extensions;
 using Raptor.Packets;
@@ -12,15 +11,10 @@ namespace Raptor
 {
     internal class ShouldAcquirePacket
     {
-        private readonly PacketSequenceStorage _storage;
-        private readonly IReadOnlyDictionary<IPEndPoint, ConnectionState> _connections;
+        private readonly IReadOnlyDictionary<IPEndPoint, Connection.Connection> _connections;
 
-        internal ShouldAcquirePacket(
-            PacketSequenceStorage storage,
-            IReadOnlyDictionary<IPEndPoint, ConnectionState> connections
-        )
+        internal ShouldAcquirePacket(IReadOnlyDictionary<IPEndPoint, Connection.Connection> connections)
         {
-            _storage = storage;
             _connections = connections;
         }
 
@@ -50,7 +44,8 @@ namespace Raptor
 
         private bool IsOrdered(Packet packet, IPEndPoint source)
         {
-            var lastAcquiredSequence = _storage.Incoming.Get(source, packet.Acquisition);
+            var connection = _connections[source];
+            var lastAcquiredSequence = connection.SequenceStorage.Incoming.Get(source, packet.Acquisition);
             var isOrdered = packet.Sequence > lastAcquiredSequence;
 
             if (!isOrdered)
@@ -64,7 +59,8 @@ namespace Raptor
 
         private bool IsSequenced(Packet packet, IPEndPoint source)
         {
-            var lastAcquiredSequence = _storage.Incoming.Get(source, packet.Acquisition);
+            var connection = _connections[source];
+            var lastAcquiredSequence = connection.SequenceStorage.Incoming.Get(source, packet.Acquisition);
             var isSequenced = packet.Sequence == lastAcquiredSequence + 1;
 
             if (!isSequenced)
