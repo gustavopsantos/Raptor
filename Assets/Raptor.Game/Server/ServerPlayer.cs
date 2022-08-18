@@ -1,7 +1,9 @@
-using System.Collections.Generic;
 using System.Net;
-using Raptor.Game.Shared;
 using UnityEngine;
+using Raptor.Game.Shared;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using Raptor.Game.Shared.Generics;
 using Input = Raptor.Game.Shared.GameInput.Input;
 
 namespace Raptor.Game.Server
@@ -10,7 +12,7 @@ namespace Raptor.Game.Server
     {
         public string Id;
         public IPEndPoint EndPoint;
-        public List<Ticked<Input>> CommandBuffer;
+        public ConcurrentList<Ticked<Input>> CommandBuffer;
 
         private Vector2 _position;
 

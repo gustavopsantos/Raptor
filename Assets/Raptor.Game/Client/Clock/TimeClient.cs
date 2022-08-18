@@ -3,7 +3,6 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Raptor.Game.Shared.Clock;
-using Raptor.Game.Client.RTTMeasurement;
 
 namespace Raptor.Game.Client.Clock
 {
@@ -20,23 +19,22 @@ namespace Raptor.Game.Client.Clock
             return DateTime.Now;
         }
 
-        public static async Task<TimeClient> Synchronized(IPEndPoint server, RaptorClient mean)
+        public static async Task<TimeClient> Synchronized(IPEndPoint server, RaptorClient mean, TimeSpan rtt)
         {
             var timeClient = new TimeClient();
-            await timeClient.Sync(server, mean);
+            await timeClient.Sync(server, mean, rtt);
             return timeClient;
         }
 
-        private async Task Sync(IPEndPoint server, RaptorClient mean)
+        private async Task Sync(IPEndPoint server, RaptorClient mean, TimeSpan rtt)
         {
             // At the moment time server arrives client, it is already outdated by half rtt
             // We want client to run half rtt ahead of server
             // so client commands arrive just in time to be processed on server
 
-            var roundTripTime = await MeasureMedianRoundTripTime.Measure(server, mean);
             var response = await mean.Request<GetTime, DateTime>(new GetTime(), server, CancellationToken.None);
             _localTimeAtLastSync = LocalTime();
-            _serverTimeAtLastSync = response.Payload.Add(roundTripTime / 2);
+            _serverTimeAtLastSync = response.Payload.Add(rtt / 2);
         }
     }
 }

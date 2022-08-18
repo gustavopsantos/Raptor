@@ -11,10 +11,18 @@ namespace Raptor.Game.Client
         {
             UnityMainThreadDispatcher.Instance().Enqueue(() =>
             {
-                var player = Object.FindObjectsOfType<LocalPlayer>().Single();
-                var positionTuple = message.Payload.Position.Value;
-                var position = new Vector2(positionTuple.Item1, positionTuple.Item2);
-                player.transform.position = position;
+                var players = Object.FindObjectsOfType<LocalPlayer>();
+
+                if (players.Length == 0)
+                {
+                    return;
+                }
+
+                var player = players.Single();
+                player.EnqueueSnapshot(message.Payload);
+                
+                
+      
             });
         }
     }

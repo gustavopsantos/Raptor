@@ -31,12 +31,17 @@ namespace Raptor.Game.Shared.Timing
             _thread.Interrupt();
         }
 
+        public double CalculateTickNow(TimeSpan offset)
+        {
+            var sinceStart = (_timeNowSource.Invoke() - StartedAt) + offset;
+            return sinceStart.TotalSeconds / _frequency.TotalSeconds;
+        }
+        
         private void Loop()
         {
             while (!_stop)
             {
-                var sinceStart = _timeNowSource.Invoke() - StartedAt;
-                var tick = sinceStart.TotalSeconds / _frequency.TotalSeconds;
+                var tick = CalculateTickNow(TimeSpan.Zero);
                 var tickInt = (int) tick;
 
                 var nextTick = tickInt + 1;

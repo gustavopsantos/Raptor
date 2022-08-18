@@ -13,17 +13,24 @@ namespace Raptor.Game.Client
         private readonly TimeClient _timeClient;
         private readonly Timer _timer;
 
-        public GameClientConnectedState(GameClient gameClient, TimeClient timeClient, DateTime serverTimerStartedAt)
+        public GameClientConnectedState(
+            LocalPlayer localPlayer,
+            GameClient gameClient,
+            TimeClient timeClient,
+            DateTime serverTimerStartedAt,
+            TimeSpan rtt)
         {
             _timeClient = timeClient;
-            _timer = new Timer(t => Loop(t, gameClient), Configuration.TickInterval, () => timeClient.Time, serverTimerStartedAt - Configuration.CommandBuffer);
-            gameClient.Client.RegisterHandler(new SnapshotHandler());
+            _timer = new Timer(t => Loop(t, gameClient, localPlayer), Configuration.TickInterval, () => timeClient.Time, serverTimerStartedAt - rtt - Configuration.CommandBuffer);
+            localPlayer.SetupTimer(_timer);
         }
 
-        private void Loop(double tick, GameClient gameClient)
+        private void Loop(double tick, GameClient gameClient, LocalPlayer localPlayer)
         {
             var server = new IPEndPoint(IPAddress.Loopback, Configuration.ServerPort);
-            var tickedInput = new Ticked<Input>((int) tick, gameClient.InputBuffer.Consume());
+            var input = gameClient.InputBuffer.Consume();
+            localPlayer.IncrementInput(tick, input);
+            var tickedInput = new Ticked<Input>((int) tick, input);
             gameClient.Client.SendMessageUnreliable(tickedInput, server);
         }
 

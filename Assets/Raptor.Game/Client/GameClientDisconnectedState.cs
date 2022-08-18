@@ -5,6 +5,7 @@ using UnityEngine;
 using System.Net.Sockets;
 using System.Threading;
 using Raptor.Game.Client.Clock;
+using Raptor.Game.Client.RTTMeasurement;
 using Raptor.Game.Shared;
 using Raptor.Game.Shared.Timing;
 
@@ -44,18 +45,21 @@ namespace Raptor.Game.Client
         private async void Join(GameClient gameClient)
         {
             gameClient.Client = new RaptorClient(0);
+            gameClient.Client.RegisterHandler(new SnapshotHandler());
+
             var address = new IPEndPoint(ResolveHost(_chatServerAddress), Configuration.ServerPort);
 
             try
             {
                 await gameClient.Client.ConnectAsync(address);
-                var timeClient = await TimeClient.Synchronized(address, gameClient.Client);
+                var rtt = await MeasureMedianRoundTripTime.Measure(address, gameClient.Client);
+                var timeClient = await TimeClient.Synchronized(address, gameClient.Client, rtt);
                 var playerInfo = await gameClient.Client.Request<GetPlayerInfo, PlayerInfo>(new GetPlayerInfo(), address, CancellationToken.None);
                 var timingInfo = await gameClient.Client.Request<GetTimingInfo, TimingInfo>(new GetTimingInfo(), address, CancellationToken.None);
                 var localPlayerPrefab = Resources.Load<LocalPlayer>("LocalPlayer");
                 var localPlayer = UnityEngine.Object.Instantiate(localPlayerPrefab);
                 localPlayer.Setup(playerInfo.Payload);
-                gameClient.SwitchState(new GameClientConnectedState(gameClient, timeClient, timingInfo.Payload.TimerStartedAt));
+                gameClient.SwitchState(new GameClientConnectedState(localPlayer, gameClient, timeClient, timingInfo.Payload.TimerStartedAt, rtt));
             }
             catch (Exception e)
             {

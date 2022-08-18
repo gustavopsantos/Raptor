@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
@@ -7,6 +9,7 @@ using Raptor.Game.Server.GameInput;
 using Raptor.Game.Server.RTTMeasurement;
 using Raptor.Game.Server.Timing;
 using Raptor.Game.Shared;
+using Raptor.Game.Shared.Generics;
 using Raptor.Interface;
 using UnityEngine;
 using Input = Raptor.Game.Shared.GameInput.Input;
@@ -41,7 +44,7 @@ namespace Raptor.Game.Server.StateMachine
                 var serverPlayer = Object.Instantiate(serverPlayerPrefab);
                 serverPlayer.Id = playerInfo.PlayerId.ToString();
                 serverPlayer.EndPoint = getPlayerInfoRequest.Source;
-                serverPlayer.CommandBuffer = new List<Ticked<Input>>();
+                serverPlayer.CommandBuffer = new ConcurrentList<Ticked<Input>>();
                 _players.Add(getPlayerInfoRequest.Source, serverPlayer);
             });
 
@@ -65,21 +68,30 @@ namespace Raptor.Game.Server.StateMachine
         {
             foreach (var player in _players.Values)
             {
-                if (!player.CommandBuffer.TryGet(c => c.Tick == _timer.Tick, out var command))
+                lock (player.CommandBuffer)
                 {
-                    Debug.LogWarning($"Theres no command for tick {_timer.Tick}");
+                    player.CommandBuffer.RemoveAll(c => c.Tick <= _timer.Tick);
+                    
+                    if (!player.CommandBuffer.TryGet(c => c.Tick == _timer.Tick, out var command))
+                    {
+                        Debug.LogWarning($"Theres no command for tick {_timer.Tick}");
+                    }
+
+                    ApplyInput(command, player);
+
+                    var tickedPosition = new Ticked<(float, float)>((int) tick, (player.Position.x, player.Position.y));
+                    var snapshot = new Snapshot(tickedPosition);
+                    gameServer.Client.BroadcastMessageUnreliable(snapshot);
                 }
-
-                player.CommandBuffer.RemoveAll(c => c.Tick <= _timer.Tick);
-                var input = new Vector2(command.Value.Horizontal, command.Value.Vertical);
-                var translation = (float) Configuration.TickInterval.TotalSeconds * 4 * input;
-                var position = player.Position + translation;
-                player.Position = position;
-
-                var tickedPosition = new Ticked<(float, float)>((int) tick, (position.x, position.y));
-                var snapshot = new Snapshot(tickedPosition);
-                gameServer.Client.BroadcastMessageUnreliable(snapshot);
             }
+        }
+
+        private void ApplyInput(Ticked<Input> tickedInput, ServerPlayer serverPlayer)
+        {
+            var input = new Vector2(tickedInput.Value.Horizontal, tickedInput.Value.Vertical);
+            var translation = (float) Configuration.TickInterval.TotalSeconds * 4 * input;
+            var position = serverPlayer.Position + translation;
+            serverPlayer.Position = position;
         }
     }
 }
