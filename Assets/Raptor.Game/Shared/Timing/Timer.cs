@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using UnityEngine;
 
 namespace Raptor.Game.Shared.Timing
 {
@@ -34,7 +35,8 @@ namespace Raptor.Game.Shared.Timing
         public double CalculateTickNow(TimeSpan offset)
         {
             var sinceStart = (_timeNowSource.Invoke() - StartedAt) + offset;
-            return sinceStart.TotalSeconds / _frequency.TotalSeconds;
+            var tick = sinceStart.TotalSeconds / _frequency.TotalSeconds;
+            return tick;
         }
         
         private void Loop()

@@ -89,7 +89,7 @@ namespace Raptor.Game.Server.StateMachine
         private void ApplyInput(Ticked<Input> tickedInput, ServerPlayer serverPlayer)
         {
             var input = new Vector2(tickedInput.Value.Horizontal, tickedInput.Value.Vertical);
-            var translation = (float) Configuration.TickInterval.TotalSeconds * 4 * input;
+            var translation = (float) Configuration.TickInterval.TotalSeconds * Configuration.PlayerSpeed * input;
             var position = serverPlayer.Position + translation;
             serverPlayer.Position = position;
         }

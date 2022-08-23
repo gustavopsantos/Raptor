@@ -29,7 +29,7 @@ namespace Raptor.Game.Client
         {
             var server = new IPEndPoint(IPAddress.Loopback, Configuration.ServerPort);
             var input = gameClient.InputBuffer.Consume();
-            localPlayer.IncrementInput(tick, input);
+            localPlayer.IncrementInput((int) tick, input);
             var tickedInput = new Ticked<Input>((int) tick, input);
             gameClient.Client.SendMessageUnreliable(tickedInput, server);
         }
