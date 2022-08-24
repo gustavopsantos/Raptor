@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Raptor.Sample
 {
-    public class RequestDelaySample : MonoBehaviour
+    public class RequestOverheadSample : MonoBehaviour
     {
         [Button]
         private async void Execute()
@@ -30,7 +30,7 @@ namespace Raptor.Sample
             await client.ConnectAsync(serverAddress);
             
             Debug.Log($"Client sending request at {TimeProfiler.Sample()}");
-            var response = await client.Request<byte, short>(0, serverAddress, timeout.Token).ConfigureAwait(false);
+            await client.Request<byte, short>(0, serverAddress, timeout.Token).ConfigureAwait(false);
             Debug.Log($"Client received response at: {TimeProfiler.Sample()} thread: {AppDomain.GetCurrentThreadId()}");
         }
     }
