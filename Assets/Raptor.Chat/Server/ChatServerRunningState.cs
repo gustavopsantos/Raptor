@@ -1,6 +1,4 @@
 using UnityEngine;
-using System.Threading;
-using Raptor.Interface;
 using Raptor.Chat.Shared;
 
 namespace Raptor.Chat.Server
@@ -10,7 +8,7 @@ namespace Raptor.Chat.Server
         public void OnEnter(ChatServer chatServer)
         {
             chatServer.Client = new RaptorClient(Configuration.ServerPort);
-            chatServer.Client.RegisterMessageHandler<ChatMessage>(BroadcastChatMessage);
+            chatServer.Client.RegisterHandler(new ChatMessageHandler());
         }
 
         public void Present(ChatServer chatServer)
@@ -21,11 +19,6 @@ namespace Raptor.Chat.Server
         public void OnExit(ChatServer chatServer)
         {
             chatServer.Client.Dispose();
-        }
-
-        private void BroadcastChatMessage(Message<ChatMessage> packet)
-        {
-            packet.Mean.BroadcastMessageReliable(packet.Payload, CancellationToken.None);
         }
     }
 }

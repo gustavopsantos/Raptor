@@ -16,10 +16,10 @@ namespace Raptor.Chat.Client
 
         public void OnEnter(ChatClient chatClient)
         {
-            chatClient.Client.RegisterMessageHandler<ChatMessage>(EnlistChatMessage);
+            chatClient.Client.RegisterMessageHandler<ChatMessage>(PresentChatMessage);
         }
 
-        private void EnlistChatMessage(Message<ChatMessage> packet)
+        private void PresentChatMessage(Message<ChatMessage> packet)
         {
             _scrollPosition.y = float.MaxValue; // scroll to bottom
             _messages.Add(packet.Payload.Content);

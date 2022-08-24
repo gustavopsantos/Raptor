@@ -20,7 +20,7 @@ namespace Raptor.Sample
             using var server = new RaptorClient(serverAddress.Port);
             using var client = new RaptorClient(clientAddress.Port);
 
-            server.RegisterMessageHandler<string>(stringMessage =>
+            server.RegisterMessageHandler<int>(stringMessage =>
             {
                 Debug.Log($"Server received: {stringMessage.Payload}");
             });
@@ -29,7 +29,7 @@ namespace Raptor.Sample
             
             for (int i = 0; i < 1024; i++)
             {
-                client.SendMessageReliable((i + 1).ToString(), serverAddress, timeout.Token);
+                client.SendMessageReliable(i + 1, serverAddress, timeout.Token); // Not awaiting ack on purpose
             }
 
             await Task.Delay(TimeSpan.FromSeconds(1), timeout.Token);
