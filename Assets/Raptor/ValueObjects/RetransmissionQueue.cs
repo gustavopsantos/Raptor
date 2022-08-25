@@ -26,23 +26,6 @@ namespace Raptor.ValueObjects
             _mean = mean;
             _retransmissionThread = new Thread(RetransmitReliableMessages);
             _retransmissionThread.Start();
-
-            _mean.RegisterObjectHandler<Ack>((ack, source) =>
-            {
-                //Debug.Log($"Acking sequence {ack.Sequence} from {source} at {TimeProfiler.Sample()}  thread: {AppDomain.GetCurrentThreadId()}");
-                
-                lock (this)
-                {
-                    if (_awaiters.TryRemove((ack.Sequence, ack.Acquisition, source), out var awaiter))
-                    {
-                        Assert.IsNotNull(awaiter);
-                        awaiter.TrySetResult(null);
-                        _pending[source].RemoveAll(p => p.Sequence == ack.Sequence);
-                    }
-                }
-
-                //Debug.Log($"Acked sequence {ack.Sequence} from {source} at {TimeProfiler.Sample()}  thread: {AppDomain.GetCurrentThreadId()}");
-            });
         }
 
         public void Dispose()
@@ -95,6 +78,19 @@ namespace Raptor.ValueObjects
                 tcs.Task.ConfigureAwait(false);
                 _awaiters.TryAdd((packet.Sequence, packet.Acquisition, recipient), tcs);
                 return tcs;
+            }
+        }
+
+        public void Ack(Ack ack, IPEndPoint source)
+        {
+            lock (this)
+            {
+                if (_awaiters.TryRemove((ack.Sequence, ack.Acquisition, source), out var awaiter))
+                {
+                    Assert.IsNotNull(awaiter);
+                    awaiter.TrySetResult(null);
+                    _pending[source].RemoveAll(p => p.Sequence == ack.Sequence);
+                }
             }
         }
 

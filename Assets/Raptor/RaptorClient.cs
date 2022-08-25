@@ -30,6 +30,14 @@ namespace Raptor
             _datagramClient = new DatagramClient(HandleDatagram, port);
             _shouldAcquirePacket = new ShouldAcquirePacket(_connections);
             RegisterRequestHandler<ConnectionRequest>(HandleConnectionRequestAsync);
+
+            RegisterObjectHandler<Ack>((ack, source) =>
+            {
+                if (_connections.TryGetValue(source, out var connection))
+                {
+                    connection.RetransmissionQueue.Ack(ack, source);
+                }
+            });
         }
 
         public void Dispose()
